@@ -1,0 +1,80 @@
+.pro-container {
+    width: 100%;
+    height: 100%;
+    background-color: #EEE;
+}
+
+.pro-card {
+    width: 220px;
+    min-height: 82px;
+    font-size: 12px;
+    border-radius: 4px;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    box-sizing: border-box;
+    box-shadow: 0 0 6px 0 rgba(0,0,0,.3);
+    background: #fff;
+    margin: 40px;
+}
+
+.pro-card__header {
+    padding-left: 16px;
+    padding-right: 16px;
+    width: 100%;
+    height: 24px;
+    line-height: 24px;
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pro-card.approver > .pro-card__header{
+    color: white;
+    background: #ff9431;
+}
+
+.pro-card.carboncopy > .pro-card__header {
+    color: white;
+    background: #3296fa;
+}
+
+.pro-card.start > .pro-card__header{
+    color: white;
+    background: #576a95;
+}
+
+.pro-card.condition > .pro-card__body{
+    padding-top: 4px;
+}
+
+.pro-card__body {
+    position: relative;
+    padding: 14px 30px 14px 14px;
+}
+
+.pro-card.condition > .pro-card__body {
+    padding-right: 14px;
+}
+
+.pro-card__arrow {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 14px;
+    background: #f1f1f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pro-card__arrow.left{
+    left: 0;
+}
+
+.pro-card__arrow.right {
+    right: 0;
+}
