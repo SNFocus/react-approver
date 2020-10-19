@@ -1,14 +1,17 @@
 import React, {useEffect} from 'react'
 
-export function useClickOutSide <T extends HTMLElement> (ref: React.RefObject<T>, onClick: (e: MouseEvent) => void) {
+export function useClickOutSide <T extends HTMLElement> (ref: React.RefObject<T>, onClick: (el: T ,e: MouseEvent) => void) {
+    function isElement (el: any): el is T {
+        return el instanceof HTMLElement
+    } 
     useEffect(() => {
         if (!ref?.current) return
-        let element: HTMLElement | undefined = undefined;
-        if (ref.current instanceof HTMLElement) {
-            element = ref.current as HTMLElement
+        let element: T | undefined = undefined;
+        if (isElement(ref.current)) {
+            element = ref.current as T
         } else {
             Object.values(ref.current).some(v => {
-                if (v instanceof HTMLElement) {
+                if (isElement(v)) {
                     element = v
                     return true
                 }
@@ -16,15 +19,17 @@ export function useClickOutSide <T extends HTMLElement> (ref: React.RefObject<T>
             })
         }
         
-        if (element === undefined) return
-        const handleClickOutSide = (e: MouseEvent) => {
-            if (onClick && !(element as T).contains(e.target as Node)) {
-                onClick(e)
+        if (element) {
+            const handleClickOutSide = (e: MouseEvent) => {
+                const isInnerClick = onClick && !(element as T).contains(e.target as Node)
+                if (isInnerClick && element) {
+                    onClick(element, e)
+                }
             }
+            document.addEventListener('mousedown', handleClickOutSide)
+            return () => document.removeEventListener('mousedown', handleClickOutSide)
         }
-
-        document.addEventListener('mousedown', handleClickOutSide)
-        return () => document.removeEventListener('mousedown', handleClickOutSide)
+        return () => {}
 
     }, [ref, onClick])
 }

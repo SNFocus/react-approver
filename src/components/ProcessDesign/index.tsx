@@ -1,94 +1,97 @@
-import React, { useState, FC ,useRef } from 'react'
-import { Slider, Input } from 'antd'
-import { useClickOutSide } from '../../utils/clickoutside'
-import { NODE_TYPE, CardNode, Cards, ProcessNode, RouteNode, isCardNode } from './mock'
-import { CloseOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
+import React, { useState, FC, useReducer, useRef } from 'react'
+import MockData from '../../utils/mock'
+import NodeController from '../../utils/NodeController'
+import { MinusOutlined, PlusOutlined} from '@ant-design/icons';
+import ProTree from './ProTree/index'
+import ProConfigPane from './PropConfigPane/index'
 import './style.css'
 
+let forceUpdateFn = () => {};
+const nodeController = new NodeController()
 
 /**
- * 缩放控制滑块
+ * 缩放控制滑块组件
  */
-interface SCProps { defaultValue: number, max: number, onChange: (x:number) => void }
+interface SCProps { defaultValue: number, max: number, onChange: (x: number) => void }
 const ScaleController: FC<SCProps> = (props) => {
     const defValue = props.defaultValue ?? 100
     const max = props.max ?? 200
-    return <Slider 
-        max={max} 
-        vertical
-        defaultValue={defValue} 
-        style={{height: '200px', float: "right", marginRight: "16px", zIndex: 999}} 
-        onChange={props.onChange} />
-}
-
-const RenderCard: FC<{node: CardNode}> =function ({node}) {
-    const [editTitleMode, setMode] = useState(false)
-    const cardClassList = `pro-card ${node.type}`
-    const isConditionNode = node.type === NODE_TYPE.CONDITION
-    const showInput = () => setMode(true)
-    const updateTitle = (e: React.ChangeEvent<HTMLInputElement>) => {
-        node.properties.title = e.currentTarget.value
+    const [percent, setPersent] = useState(defValue)
+    const STEP = 5
+    const update = (n: number) => {
+        setPersent(percent + n)
+        props.onChange(percent + n)
     }
-    const ref = useRef(null)
-    useClickOutSide(ref, () =>setMode(false))
-    return <section className={cardClassList}>
-                <div className="pro-card__header">
-                    <Input 
-                        size="small" 
-                        ref={ref}  
-                        defaultValue={node.properties.title} 
-                        style={{display: editTitleMode ? 'block': 'none'}}
-                        onChange={updateTitle} />
-                    <span 
-                        onClick={showInput} 
-                        style={{color: isConditionNode ? '#15bc83' : undefined,display: editTitleMode ? 'none': 'block'} }>
-                        {node.properties.title}
-                    </span>
-                    <CloseOutlined className="close"/>
-                </div>
-                <div  className="pro-card__body">
-                    {node.content}
-                </div>
-
-                {   !isConditionNode && 
-                    <div style={{width: "30px", top: '24px', background: 'white'}} className="pro-card__arrow right">
-                        <RightOutlined   />
-                    </div>
-                }
-                
-                {   isConditionNode &&
-                    <React.Fragment >
-                        <div className="pro-card__arrow left">
-                            <LeftOutlined />
-                        </div>
-                        <div className="pro-card__arrow right">
-                            <RightOutlined />
-                        </div>
-                    </React.Fragment>
-                }
-            </section>
+    const increase = () => percent < max && update(STEP)
+    const decrease = () => percent > 20 && update(-STEP)
+    return <div className="scale-controller">
+                <MinusOutlined className="scale-btn" onClick={decrease}/>
+                <span className="scale-text">{percent}%</span>
+                <PlusOutlined className="scale-btn"  onClick={increase}/>
+            </div>
 }
-
-const renderRoute = function (node: RouteNode) {
-    return <div key={node.nodeId}>124</div>
-}
-
-const NodeFactory = (node: ProcessNode) => 
-      isCardNode(node) ? <RenderCard node={node}  key={node.nodeId}/> : renderRoute(node as RouteNode) 
 
 
 /**
  * 渲染入口
  */
+type Action = keyof NodeController | 'editProps'
 const Process: FC = () => {
-    const [scale, setScale] = useState(100)
-    return <section className="pro-container">
-        <ScaleController defaultValue={100} max={200} onChange={setScale}/>
-        <div style={{transform: `scale(${scale / 100})`}}>
+    //////////////////////////    Props    /////////////////////////////
+    const containerEle = useRef(null)
+    const [paneVisible, setVisible] = useState(false)
+    const [, forceUpdate] = useReducer(v => v + 1, 0 )
+    const [activeNodeId, setActiveNodeId] = useState(MockData.nodeId)
+    forceUpdateFn = forceUpdate
+    //////////////////////////   Methods   /////////////////////////////
+    const changeScale = (scale: number) => {
+        if (containerEle?.current) {
+            (containerEle.current as unknown as HTMLDivElement)
+            .style.transform = `scale(${scale / 100})`
+        }
+    }
+    const lanchEvent = function (action: Action, payload: string[]) {
+        if (action === 'editProps') {
+            setVisible(true)
+            setActiveNodeId(payload[0])
+        } else {
+            const fn = nodeController[action]
+            if (typeof fn === 'function') {
+                fn.apply(nodeController, payload)
+                forceUpdateFn()
+            } 
+        }
+    }
+    const handleClose = () => setVisible(false)
+    const handleConfirm = (properties: CardProperty) => {
+        const activeNode = nodeController.nodeMap.get(activeNodeId) as CardNode
+        if (activeNode) {
+            Object.assign(activeNode.properties, properties)
+        }
+        handleClose()
+    }
+
+    //////////////////////////     Init     /////////////////////////////
+    nodeController.recordProData(MockData)
+
+    //////////////////////////   Entry   /////////////////////////////
+    return <section className="pro-container-wrap">
+        <ScaleController defaultValue={100} max={200} onChange={changeScale} />
+        <div className="pro-container" ref={containerEle} >
             {
-                Cards.map(t => NodeFactory(t)) 
+                <ProTree startNode={MockData} actionHandler={lanchEvent} />
             }
+            <div>
+                <div className="end-dot"></div>
+                <div>流程结束</div>
+            </div>
         </div>
+        <ProConfigPane 
+            activeNodeId={activeNodeId}
+            controller={nodeController}
+            visible={paneVisible} 
+            onCancel={handleClose} 
+            onConfirm={handleConfirm} />
     </section>
 }
 

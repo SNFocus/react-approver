@@ -1,0 +1,6 @@
+.config-pane__header {
+    display: flex;
+}
+.config-pane__title {
+    flex-grow: 1;
+}

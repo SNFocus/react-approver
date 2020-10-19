@@ -1,0 +1,8 @@
+.org-select .ant-select-selector {
+    padding: 0 !important;
+    padding-top: 38px !important;
+}
+
+.org-select .select__btn {
+    position: absolute;
+}
